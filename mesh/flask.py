@@ -12,13 +12,22 @@ class Mesh(Base):
     def __init__(self, app=None):
         super().__init__()
         self.app = app or current_app
+        self.sentry = None
         if app is not None:
             self.init_app(app)
 
     def init_app(self, app):
         app.extensions['mesh'] = self
+
         self.init_proxies(app.config.get('MESH_PROXIES_FILE'))
         self.init_clients(app.config.get('MESH_CLIENTS_FILE'))
+
+        sentry_dsn = app.config.get('SENTRY_DSN')
+        if sentry_dsn:
+            from raven.contrib.flask import Sentry
+            import logging
+            self.sentry = Sentry(
+                app, dsn=sentry_dsn, logging=True, level=logging.ERROR)
 
     def current_context(self):
         return _app_ctx_stack.top
