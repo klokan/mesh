@@ -1,8 +1,9 @@
+import logging
+
 from flask import _app_ctx_stack, abort, current_app, jsonify, request
-from functools import wraps
+from functools import partial, wraps
 from werkzeug.exceptions import HTTPException
 from werkzeug.http import HTTP_STATUS_CODES
-
 
 from . import Mesh as Base
 
@@ -22,12 +23,17 @@ class Mesh(Base):
         self.init_proxies(app.config.get('MESH_PROXIES_FILE'))
         self.init_clients(app.config.get('MESH_CLIENTS_FILE'))
 
-        sentry_dsn = app.config.get('SENTRY_DSN')
+        sentry_dsn = app.config.get('MESH_SENTRY_DSN')
         if sentry_dsn:
+            from raven import Client
             from raven.contrib.flask import Sentry
-            import logging
+            from .sentry import Transport
+            client = Client(dsn=sentry_dsn, transport=partial(Transport, self))
             self.sentry = Sentry(
-                app, dsn=sentry_dsn, logging=True, level=logging.WARNING)
+                app,
+                client=client,
+                logging=True,
+                level=logging.WARNING)
 
     def current_context(self):
         return _app_ctx_stack.top
