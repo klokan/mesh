@@ -27,7 +27,7 @@ class Mesh(Base):
             from raven.contrib.flask import Sentry
             import logging
             self.sentry = Sentry(
-                app, dsn=sentry_dsn, logging=True, level=logging.ERROR)
+                app, dsn=sentry_dsn, logging=True, level=logging.WARNING)
 
     def current_context(self):
         return _app_ctx_stack.top
