@@ -1,3 +1,4 @@
+v1.3, 2017-10-18 -- Add release information to Sentry client.
 v1.2, 2017-10-14 -- Use Mesh Requests session for Sentry transport.
 v1.1, 2017-10-13 -- Add Sentry integration for Flask.
 v1.0, 2017-09-29 -- Initial release.
