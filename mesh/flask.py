@@ -28,7 +28,10 @@ class Mesh(Base):
             from raven import Client
             from raven.contrib.flask import Sentry
             from .sentry import Transport
-            client = Client(dsn=sentry_dsn, transport=partial(Transport, self))
+            client = Client(
+                dsn=sentry_dsn,
+                release=app.config.get('VERSION'),
+                transport=partial(Transport, self))
             self.sentry = Sentry(
                 app,
                 client=client,
