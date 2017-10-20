@@ -30,6 +30,7 @@ class Mesh(Base):
             from .sentry import Transport
             client = Client(
                 dsn=sentry_dsn,
+                name=app.config.get('MACHINE'),
                 release=app.config.get('VERSION'),
                 transport=partial(Transport, self))
             self.sentry = Sentry(
