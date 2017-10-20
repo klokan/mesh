@@ -32,6 +32,7 @@ class Mesh(Base):
                 dsn=sentry_dsn,
                 name=app.config.get('MACHINE'),
                 release=app.config.get('VERSION'),
+                environment='staging' if app.debug else 'production',
                 transport=partial(Transport, self))
             self.sentry = Sentry(
                 app,
