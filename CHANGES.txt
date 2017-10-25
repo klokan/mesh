@@ -1,3 +1,4 @@
+v1.6, 2017-10-25 -- Add requirements for extras to setup.
 v1.5, 2017-10-20 -- Add environment information to Sentry client.
 v1.4, 2017-10-20 -- Add machine name to Sentry client.
 v1.3, 2017-10-18 -- Add release information to Sentry client.
