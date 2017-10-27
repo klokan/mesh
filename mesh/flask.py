@@ -1,7 +1,7 @@
 import logging
 
+from functools import wraps
 from flask import _app_ctx_stack, abort, current_app, jsonify, request
-from functools import partial, wraps
 from werkzeug.exceptions import HTTPException
 from werkzeug.http import HTTP_STATUS_CODES
 
@@ -19,24 +19,12 @@ class Mesh(Base):
 
     def init_app(self, app):
         app.extensions['mesh'] = self
-
-        self.init_proxies(app.config.get('MESH_PROXIES_FILE'))
-        self.init_clients(app.config.get('MESH_CLIENTS_FILE'))
-
-        sentry_dsn = app.config.get('MESH_SENTRY_DSN')
-        if sentry_dsn:
-            from raven import Client
+        self.configure(app.config.get('MESH_CONFIG_FILE'))
+        if self.sentry_client is not None:
             from raven.contrib.flask import Sentry
-            from .sentry import Transport
-            client = Client(
-                dsn=sentry_dsn,
-                name=app.config.get('MACHINE'),
-                release=app.config.get('VERSION'),
-                environment='staging' if app.debug else 'production',
-                transport=partial(Transport, self))
             self.sentry = Sentry(
                 app,
-                client=client,
+                client=self.sentry_client,
                 logging=True,
                 level=logging.WARNING)
 
