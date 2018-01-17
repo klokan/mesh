@@ -14,13 +14,12 @@ except ImportError:
 
 class HTTP:
 
-    def __init__(self, mesh):
-        config = mesh.config.get('http', {})
-        self.mesh = mesh
+    def __init__(self, config, context):
         self.proxies = {}
         self.servers = {}
         self.clients = set()
         self.adapter = Adapter(self.servers)
+        self.context = context
 
         proxies = config.get('proxies')
         if proxies:
@@ -40,7 +39,7 @@ class HTTP:
 
     @property
     def session(self):
-        context = self.mesh.context()
+        context = self.context()
         session = getattr(context, 'http_session', None)
         if session is None:
             # TODO: Add retry settings.

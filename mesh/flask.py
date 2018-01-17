@@ -24,11 +24,13 @@ class Mesh(Base):
     def sentry(self):
         sentry = self._sentry
         if sentry is None:
-            from raven.contrib.flask import Sentry
-            sentry = Sentry(
-                self.app,
-                client=super().sentry(),
-                logging=True,
-                level=logging.WARNING)
-            self._sentry = sentry
+            client = super().sentry()
+            if client is not None:
+                from raven.contrib.flask import Sentry
+                sentry = Sentry(
+                    self.app,
+                    client=client,
+                    logging=True,
+                    level=logging.WARNING)
+                self._sentry = sentry
         return sentry

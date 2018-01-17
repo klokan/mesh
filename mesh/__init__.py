@@ -24,14 +24,17 @@ class Mesh:
         http = self._http
         if http is None:
             from mesh.http import HTTP
-            http = HTTP(self)
+            config = self.config.get('http', {})
+            http = HTTP(config=config, context=self.context)
             self._http = http
         return http
 
     def sentry(self):
         sentry = self._sentry
         if sentry is None:
-            from mesh.sentry import Sentry
-            sentry = Sentry(self)
-            self._sentry = sentry
+            config = self.config.get('sentry')
+            if config is not None:
+                from mesh.sentry import Sentry
+                sentry = Sentry(config=config, http=self.http())
+                self._sentry = sentry
         return sentry

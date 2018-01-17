@@ -5,14 +5,13 @@ from raven.transport.http import HTTPTransport
 
 class Sentry(Client):
 
-    def __init__(self, mesh):
-        config = mesh.config.get('sentry', {})
+    def __init__(self, config, http):
         super().__init__(
             dsn=config['dsn'],
             name=config.get('name'),
             release=config.get('release'),
             environment=config.get('environment'),
-            transport=partial(Transport, mesh.http()))
+            transport=partial(Transport, http))
 
 
 class Transport(HTTPTransport):
