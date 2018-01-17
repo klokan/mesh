@@ -1,92 +1,37 @@
 import json
 
-from functools import partial
-from requests import Session
-from requests.adapters import HTTPAdapter as BaseHTTPAdapter
-from requests.auth import _basic_auth_str
-from requests.utils import select_proxy
-
 
 class Mesh:
 
     def __init__(self):
-        self.proxies = {}
-        self.servers = {}
-        self.clients = set()
-        self.http_adapter = HTTPAdapter(self.servers)
-        self.sentry_client = None
+        self.config = {}
+        self._http = None
+        self._sentry = None
 
-    def configure(self, file=None):
-        if not file:
-            return
+    def configure(self, path_or_config=None, **kwargs):
+        if path_or_config is not None:
+            if isinstance(path_or_config, str):
+                with open(path_or_config, 'r') as fp:
+                    self.config.update(json.load(fp))
+            else:
+                self.config.update(path_or_config)
+        self.config.update(kwargs)
 
-        with open(file, 'r') as fp:
-            config = json.load(fp)
-
-        proxies = config.get('proxies')
-        if proxies:
-            self.proxies.update(proxies)
-
-        servers = config.get('servers')
-        if servers:
-            for server, auth in servers.items():
-                username, password = auth.split(':')
-                self.servers[server] = (username, password)
-
-        clients = config.get('clients')
-        if clients:
-            for auth in clients:
-                username, password = auth.split(':')
-                self.clients.add((username, password))
-
-        sentry = config.get('sentry')
-        if sentry:
-            from raven import Client
-            from mesh.sentry import Transport
-            self.sentry_client = Client(
-                dsn=sentry['dsn'],
-                name=sentry.get('name'),
-                release=sentry.get('release'),
-                environment=sentry.get('environment'),
-                transport=partial(Transport, self))
-
-    def current_context(self):
+    def context(self):
         return self
 
-    @property
-    def session(self):
-        context = self.current_context()
-        session = getattr(context, 'mesh_session', None)
-        if session is None:
-            # TODO: Add retry settings.
-            session = context.mesh_session = Session()
-            session.mount('http://', self.http_adapter)
-            session.mount('https://', self.http_adapter)
-            session.proxies = self.proxies
-            session.timeout = 20
-        return session
+    def http(self):
+        http = self._http
+        if http is None:
+            from mesh.http import HTTP
+            http = HTTP(self)
+            self._http = http
+        return http
 
-    def link_header(self, *items):
-        links = []
-        for item in items:
-            link = []
-            link.append('<{}>'.format(item['url']))
-            for key, val in item.items():
-                if key != 'url':
-                    link.append('{}="{}"'.format(key, val))
-            links.append('; '.join(link))
-        return ', '.join(links)
-
-
-class HTTPAdapter(BaseHTTPAdapter):
-
-    def __init__(self, servers):
-        super().__init__()
-        self.servers = servers
-
-    def add_headers(self, request, **kwargs):
-        auth = select_proxy(request.url, self.servers)
-        if auth is not None:
-            username, password = auth
-            value = _basic_auth_str(username, password)
-            request.headers.setdefault('Authorization', value)
+    def sentry(self):
+        sentry = self._sentry
+        if sentry is None:
+            from mesh.sentry import Sentry
+            sentry = Sentry(self)
+            self._sentry = sentry
+        return sentry
