@@ -1,39 +1,57 @@
+from contextlib import contextmanager
+from mesh import Mesh
+
+
 class TestSession:
     """
     Feature: HTTP requests session
     """
 
-    def test_direct(self, mesh):
+    @contextmanager
+    def http(self, config=None):
+        mesh = Mesh()
+        if config is not None:
+            mesh.configure(http=config)
+        http = mesh.init_http()
+        with mesh.make_context():
+            yield http
+
+    def test_direct(self):
         """Scenario: Request"""
-        response = mesh.http().session.get('http://nginx/')
-        assert response.status_code == 200
+        with self.http() as http:
+            response = http.session.get('http://nginx/')
+            assert response.status_code == 200
 
-    def test_proxy(self, mesh):
+    def test_proxy(self):
         """Scenario: Request through proxy"""
-        mesh.configure(http={
+        config = {
             'proxies': {'http://proxy': 'http://nginx'},
-        })
-        response = mesh.http().session.get('http://proxy/')
-        assert response.status_code == 200
+        }
+        with self.http(config) as http:
+            response = http.session.get('http://proxy/')
+            assert response.status_code == 200
 
-    def test_unauthenticated(self, mesh):
+    def test_unauthenticated(self):
         """Scenario: Request to restricted area without credentials"""
-        response = mesh.http().session.get('http://nginx/restricted')
-        assert response.status_code == 401
+        with self.http() as http:
+            response = http.session.get('http://nginx/restricted')
+            assert response.status_code == 401
 
-    def test_authenticated(self, mesh):
+    def test_authenticated(self):
         """Scenario: Request to restricted area"""
-        mesh.configure(http={
+        config = {
             'servers': {'http://nginx': 'guest:password'},
-        })
-        response = mesh.http().session.get('http://nginx/restricted')
-        assert response.status_code == 200
+        }
+        with self.http(config) as http:
+            response = http.session.get('http://nginx/restricted')
+            assert response.status_code == 200
 
-    def test_authenticated_proxy(self, mesh):
+    def test_authenticated_proxy(self):
         """Scenario: Request to restricted area through proxy"""
-        mesh.configure(http={
+        config = {
             'proxies': {'http://proxy': 'http://nginx'},
             'servers': {'http://proxy': 'guest:password'},
-        })
-        response = mesh.http().session.get('http://proxy/restricted')
-        assert response.status_code == 200
+        }
+        with self.http(config) as http:
+            response = http.session.get('http://proxy/restricted')
+            assert response.status_code == 200

@@ -15,6 +15,7 @@ raven = {extras = ["flask"]}
 requests = "*"
 flask = "*"
 pytest = "*"
+kombu = "*"
 
 
 [requires]

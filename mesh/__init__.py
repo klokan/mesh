@@ -1,12 +1,18 @@
 import json
+import logging
+
+from contextlib import contextmanager
+from types import SimpleNamespace
 
 
-class Mesh:
+class MeshBase:
 
     def __init__(self):
         self.config = {}
-        self._http = None
-        self._sentry = None
+        self.amqp = None
+        self.http = None
+        self.logger = None
+        self.sentry = None
 
     def configure(self, path_or_config=None, **kwargs):
         if path_or_config is not None:
@@ -17,24 +23,55 @@ class Mesh:
                 self.config.update(path_or_config)
         self.config.update(kwargs)
 
-    def context(self):
-        return self
+    def init_amqp(self):
+        if self.amqp is None and 'amqp' in self.config:
+            from mesh.amqp import AMQP
+            self.amqp = AMQP(self)
+        return self.amqp
 
-    def http(self):
-        http = self._http
-        if http is None:
+    def init_http(self):
+        if self.http is None:
             from mesh.http import HTTP
-            config = self.config.get('http', {})
-            http = HTTP(config=config, context=self.context)
-            self._http = http
-        return http
+            self.http = HTTP(self)
+        return self.http
 
-    def sentry(self):
-        sentry = self._sentry
-        if sentry is None:
-            config = self.config.get('sentry')
-            if config is not None:
-                from mesh.sentry import Sentry
-                sentry = Sentry(config=config, http=self.http())
-                self._sentry = sentry
-        return sentry
+    def init_sentry(self):
+        if self.sentry is None and 'sentry' in self.config:
+            from mesh.sentry import make_client
+            self.sentry = make_client(self)
+        return self.sentry
+
+
+class Mesh(MeshBase):
+
+    logging_format = '[%(asctime)s] %(levelname)s in %(module)s: %(message)s'
+
+    def __init__(self):
+        super().__init__()
+        self.context = None
+        self.teardown_callbacks = []
+
+    def init_logger(self):
+        if self.logger is None:
+            logging.basicConfig(format=self.logging_format, level=logging.INFO)
+            self.logger = logging.getLogger()
+        return self.logger
+
+    def teardown_context(self, callback):
+        self.teardown_callbacks.append(callback)
+        return callback
+
+    @contextmanager
+    def make_context(self, **kwargs):
+        self.context = SimpleNamespace()
+        try:
+            yield
+        except Exception:
+            self.logger.exception('Exception occured')
+        finally:
+            for callback in self.teardown_callbacks:
+                callback()
+            self.context = None
+
+    def current_context(self):
+        return self.context

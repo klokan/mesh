@@ -2,35 +2,43 @@ import logging
 
 from flask import _app_ctx_stack
 
-from mesh import Mesh as Base
+from mesh import MeshBase
 
 
-class Mesh(Base):
+class Mesh(MeshBase):
 
     def __init__(self, app=None):
         super().__init__()
-        self.app = None
+        self.app = app
         if app is not None:
             self.init_app(app)
+            self.logger = app.logger
 
     def init_app(self, app):
-        self.app = app
         app.extensions['mesh'] = self
         self.configure(app.config.get('MESH_CONFIG'))
 
-    def context(self):
+    def init_logger(self):
+        if self.logger is None:
+            raise Exception
+
+    def teardown_context(self, callback):
+        self.app.teardown_appcontext(callback)
+
+    def make_context(self, **kwargs):
+        return self.app.test_request_context(**kwargs)
+
+    def current_context(self):
         return _app_ctx_stack.top
 
-    def sentry(self):
-        sentry = self._sentry
-        if sentry is None:
-            client = super().sentry()
+    def init_sentry(self):
+        if self.sentry is None:
+            client = super().init_sentry()
             if client is not None:
                 from raven.contrib.flask import Sentry
-                sentry = Sentry(
+                self.sentry = Sentry(
                     self.app,
                     client=client,
                     logging=True,
                     level=logging.WARNING)
-                self._sentry = sentry
-        return sentry
+        return self.sentry
