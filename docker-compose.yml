@@ -1,0 +1,16 @@
+version: "2"
+
+services:
+  mesh:
+    build: .
+    depends_on:
+    - nginx
+    volumes:
+    - ./:/usr/local/src/mesh
+
+  nginx:
+    image: nginx:1.11.5-alpine
+    tmpfs:
+    - /var/log/nginx
+    volumes:
+    - ./nginx:/etc/nginx/conf.d

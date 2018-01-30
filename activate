@@ -1,0 +1,16 @@
+function deactivate {
+    export PS1="$_OLD_PS1"
+    unset _OLD_PS1
+    unset -f deactivate pytest python
+}
+
+function pytest {
+    docker-compose run --rm --no-deps mesh pytest "$@"
+}
+
+function python {
+    docker-compose run --rm --no-deps mesh python "$@"
+}
+
+_OLD_PS1="$PS1"
+export PS1="[active] $PS1"
