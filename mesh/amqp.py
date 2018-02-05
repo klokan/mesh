@@ -34,8 +34,8 @@ class AMQP:
             session = self.sessions.pop()
             session.close()
         if self.consumer is not None:
-            self.consumer.connection.close()
             self.consumer.close()
+            self.consumer.connection.close()
 
     @property
     def session(self):
