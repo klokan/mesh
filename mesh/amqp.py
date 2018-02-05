@@ -50,7 +50,7 @@ class AMQP:
             setattr(context, 'amqp_session', session)
         return session
 
-    def release_session(self):
+    def release_session(self, exc=None):
         context = self.mesh.current_context()
         session = getattr(context, 'amqp_session', None)
         if session is not None and session.connected:
