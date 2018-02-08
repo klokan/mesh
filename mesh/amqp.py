@@ -5,7 +5,6 @@ from kombu import Connection, Exchange, Queue
 from kombu.common import uuid
 from signal import SIGINT, SIGTERM, signal
 from threading import Lock
-from time import sleep
 
 
 class AMQP:
@@ -91,7 +90,6 @@ class AMQP:
                 connection.heartbeat_check()
             except connection.connection_errors:
                 connection.close()
-                sleep(1)
                 connection.ensure_connection(max_retries=3)
                 self.consumer.revive(connection)
                 self.consumer.consume()
@@ -182,17 +180,11 @@ class Session:
         kwargs['serializer'] = 'json'
         kwargs['body'] = json
 
-        num_tries = 0
-        while True:
-            try:
-                self.producer.publish(**kwargs)
-                break
-            except self.connection.connection_errors:
-                num_tries += 1
-                if num_tries == 3:
-                    raise
-                sleep(num_tries)
-                self.revive()
+        try:
+            self.producer.publish(**kwargs)
+        except self.connection.connection_errors:
+            self.revive()
+            self.producer.publish(**kwargs)
 
         return correlation_id
 
