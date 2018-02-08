@@ -17,6 +17,7 @@ class HTTP:
     def __init__(self, mesh):
         config = mesh.config.get('http', {})
         self.mesh = mesh
+        self.logger = mesh.logger
 
         self.proxies = {}
         self.servers = {}
@@ -74,7 +75,7 @@ class HTTP:
                 response.status_code = exc.code
                 return response
             except Exception:
-                self.app.logger.exception('Internal server error')
+                self.logger.exception('Internal server error')
                 response = jsonify(message='Internal server error')
                 response.status_code = 500
                 return response
