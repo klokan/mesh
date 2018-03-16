@@ -21,11 +21,12 @@ def test_amqp():
     received = False
 
     with mesh.make_context():
-        amqp.session.publish(
+        amqp.session.add(
             exchange='testing.exchange',
             routing_key='testing.routing_key',
             type='testing.type',
-            json=secret)
+            json=lambda: secret)
+        amqp.session.commit()
 
     @amqp.task('testing.type')
     def task(message):
