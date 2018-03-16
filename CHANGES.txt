@@ -1,3 +1,4 @@
+v2.3, 2018-03-16 -- Add AMQP transactions.
 v2.2, 2018-02-05 -- Fix HTTP logging, simplify AMQP retries.
 v2.1, 2018-02-05 -- Add AMQP, tests.
 v2.0, 2018-01-17 -- Organize into services.
