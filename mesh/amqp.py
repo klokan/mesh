@@ -172,7 +172,7 @@ class Session:
     def add(self, **kwargs):
         self.messages.append(kwargs)
 
-    def publish(self, *, routing_key, exchange=None, reply_to=None,
+    def publish(self, *, exchange=None, routing_key=None, reply_to=None,
                 correlation_id=None, json=None, persistent=False, **kwargs):
         message_id = uuid()
         self.init_producer()
@@ -186,7 +186,7 @@ class Session:
                     correlation_id = message_id
 
         kwargs['exchange'] = exchange if exchange is not None else ''
-        kwargs['routing_key'] = routing_key
+        kwargs['routing_key'] = routing_key if routing_key is not None else ''
         kwargs['reply_to'] = reply_to
         kwargs['app_id'] = self.app_id
         kwargs['message_id'] = message_id
