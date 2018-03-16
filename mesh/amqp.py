@@ -47,6 +47,7 @@ class AMQP:
                     session = self.sessions.pop()
                 except IndexError:
                     session = Session(self.app_id, self.connection.clone())
+            session.begin()
             setattr(context, 'amqp_session', session)
         return session
 
@@ -124,6 +125,7 @@ class Session:
         self.connection = connection
         self.producer = None
         self.consumer = None
+        self.messages = []
         self.replies = {}
 
     def init_producer(self):
@@ -157,6 +159,18 @@ class Session:
         if self.producer is not None:
             self.producer.close()
         self.connection.close()
+
+    def begin(self):
+        self.messages.clear()
+        self.replies.clear()
+
+    def commit(self):
+        for message in self.messages:
+            self.publish(**message)
+        self.messages.clear()
+
+    def add(self, **kwargs):
+        self.messages.append(kwargs)
 
     def publish(self, *, routing_key, exchange=None, reply_to=None,
                 correlation_id=None, json=None, persistent=False, **kwargs):
