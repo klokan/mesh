@@ -178,8 +178,12 @@ class Session:
         kwargs['message_id'] = message_id
         kwargs['correlation_id'] = correlation_id
         kwargs['delivery_mode'] = 2 if persistent else 1
-        kwargs['serializer'] = 'json'
-        kwargs['body'] = json
+
+        if json is not None:
+            if callable(json):
+                json = json()
+            kwargs['serializer'] = 'json'
+            kwargs['body'] = json
 
         try:
             self.producer.publish(**kwargs)
