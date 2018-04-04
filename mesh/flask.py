@@ -1,5 +1,6 @@
 import logging
 
+from click import Command
 from flask import _app_ctx_stack
 
 from mesh import MeshBase
@@ -17,6 +18,12 @@ class Mesh(MeshBase):
     def init_app(self, app):
         app.extensions['mesh'] = self
         self.configure(app.config.get('MESH_CONFIG'))
+
+    def init_cron(self):
+        if self.cron is None:
+            cron = super().init_cron()
+            self.app.cli.add_command(Command('cron', callback=cron.run))
+        return cron
 
     def init_logger(self):
         if self.logger is None:

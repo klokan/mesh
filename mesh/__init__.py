@@ -10,6 +10,7 @@ class MeshBase:
     def __init__(self):
         self.config = {}
         self.amqp = None
+        self.cron = None
         self.http = None
         self.influx = None
         self.logger = None
@@ -29,6 +30,12 @@ class MeshBase:
             from mesh.amqp import AMQP
             self.amqp = AMQP(self)
         return self.amqp
+
+    def init_cron(self):
+        if self.cron is None:
+            from mesh.cron import CRON
+            self.cron = CRON(self)
+        return self.cron
 
     def init_http(self):
         if self.http is None:

@@ -17,6 +17,7 @@ flask = "*"
 pytest = "*"
 kombu = "*"
 influxdb = "*"
+schedule = "*"
 
 
 [requires]

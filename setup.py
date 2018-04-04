@@ -7,6 +7,7 @@ setup(
     packages=['mesh'],
     extras_require={
         'amqp': ['kombu>=4.1'],
+        'cron': ['schedule>=0.5'],
         'http': ['requests>=2.12'],
         'influx': ['influxdb>=5.0'],
         'sentry': ['raven>=6.2'],
