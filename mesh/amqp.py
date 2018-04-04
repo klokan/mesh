@@ -54,9 +54,11 @@ class AMQP:
     def release_session(self, exc=None):
         context = self.mesh.current_context()
         session = getattr(context, 'amqp_session', None)
-        if session is not None and session.connected:
-            with self.mutex:
-                self.sessions.append(session)
+        if session is not None:
+            session.rollback()
+            if session.connected:
+                with self.mutex:
+                    self.sessions.append(session)
 
     def task(self, message_type):
         def decorator(callback):
@@ -167,6 +169,9 @@ class Session:
     def commit(self):
         for message in self.messages:
             self.publish(**message)
+        self.messages.clear()
+
+    def rollback(self):
         self.messages.clear()
 
     def add(self, **kwargs):
