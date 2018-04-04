@@ -11,6 +11,7 @@ class MeshBase:
         self.config = {}
         self.amqp = None
         self.http = None
+        self.influx = None
         self.logger = None
         self.sentry = None
 
@@ -34,6 +35,12 @@ class MeshBase:
             from mesh.http import HTTP
             self.http = HTTP(self)
         return self.http
+
+    def init_influx(self):
+        if self.influx is None and 'influx' in self.config:
+            from mesh.influx import Influx
+            self.influx = Influx(self)
+        return self.influx
 
     def init_sentry(self):
         if self.sentry is None and 'sentry' in self.config:

@@ -16,6 +16,7 @@ requests = "*"
 flask = "*"
 pytest = "*"
 kombu = "*"
+influxdb = "*"
 
 
 [requires]

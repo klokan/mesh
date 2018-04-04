@@ -8,5 +8,6 @@ setup(
     extras_require={
         'amqp': ['kombu>=4.1'],
         'http': ['requests>=2.12'],
+        'influx': ['influxdb>=5.0'],
         'sentry': ['raven>=6.2'],
     })
