@@ -32,7 +32,7 @@ class Mesh(MeshBase):
         return _app_ctx_stack.top
 
     def init_sentry(self):
-        if self.sentry is None:
+        if self.sentry is None and not self.app.debug:
             client = super().init_sentry()
             if client is not None:
                 from raven.contrib.flask import Sentry
