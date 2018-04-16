@@ -212,7 +212,9 @@ class Session:
 
         return correlation_id
 
-    def wait(self, correlation_id, timeout=10):
+    def wait(self, correlation_id, timeout=None):
+        if timeout is None:
+            timeout = 10
         elapsed = 0
         while elapsed < timeout:
             reply = self.replies.pop(correlation_id, None)
@@ -229,6 +231,11 @@ class Session:
                 # replies anyway.
                 self.close()
                 raise
+
+    def request(self, timeout=None, **kwargs):
+        kwargs.setdefault('reply_to', self.reply_queue)
+        correlation_id = self.publish(**kwargs)
+        return self.wait(correlation_id, timeout=timeout)
 
     def process_reply(self, message):
         correlation_id = message.properties['correlation_id']
