@@ -203,6 +203,8 @@ class Session:
                 json = json()
             kwargs['serializer'] = 'json'
             kwargs['body'] = json
+        else:
+            kwargs.setdefault('body', '')
 
         try:
             self.producer.publish(**kwargs)
