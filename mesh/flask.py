@@ -25,18 +25,21 @@ class Mesh(MeshBase):
             self.app.cli.add_command(Command('cron', callback=cron.run))
         return cron
 
+    def init_db(self):
+        if self.db is None and 'db' in self.config:
+            from flask_sqlalchemy import SQLAlchemy
+            config = self.config['db']
+            engine = config['engine']
+            session = config.get('session')
+            self.app.config['SQLALCHEMY_DATABASE_URI'] = engine['url']
+            self.app.config['SQLALCHEMY_ECHO'] = engine.get('echo', False)
+            self.app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+            self.db = SQLAlchemy(self.app, session_options=session)
+        return self.db
+
     def init_logger(self):
         if self.logger is None:
             raise Exception
-
-    def teardown_context(self, callback):
-        self.app.teardown_appcontext(callback)
-
-    def make_context(self, **kwargs):
-        return self.app.test_request_context(**kwargs)
-
-    def current_context(self):
-        return _app_ctx_stack.top
 
     def init_sentry(self):
         if self.sentry is None and not self.app.debug:
@@ -49,3 +52,12 @@ class Mesh(MeshBase):
                     logging=True,
                     level=logging.WARNING)
         return self.sentry
+
+    def teardown_context(self, callback):
+        self.app.teardown_appcontext(callback)
+
+    def make_context(self, **kwargs):
+        return self.app.test_request_context(**kwargs)
+
+    def current_context(self):
+        return _app_ctx_stack.top

@@ -11,6 +11,7 @@ class MeshBase:
         self.config = {}
         self.amqp = None
         self.cron = None
+        self.db = None
         self.http = None
         self.influx = None
         self.logger = None
@@ -64,6 +65,12 @@ class Mesh(MeshBase):
         super().__init__()
         self.context = None
         self.teardown_callbacks = []
+
+    def init_db(self):
+        if self.db is None and 'db' in self.config:
+            from mesh.db import DB
+            self.db = DB(self)
+        return self.db
 
     def init_logger(self):
         if self.logger is None:

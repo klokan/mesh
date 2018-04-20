@@ -18,6 +18,7 @@ pytest = "*"
 kombu = "*"
 influxdb = "*"
 schedule = "*"
+sqlalchemy = "*"
 
 
 [requires]
