@@ -116,6 +116,9 @@ class AMQP:
                 callback(message)
             except Exception:
                 self.logger.exception('Exception occured')
+            finally:
+                if not message.acknowledged:
+                    message.reject()
 
 
 class Session:
