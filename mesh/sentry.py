@@ -10,7 +10,7 @@ def make_client(mesh):
         name=config.get('name'),
         release=config.get('release'),
         environment=config.get('environment'),
-        transport=partial(Transport, mesh.http))
+        transport=partial(Transport, mesh.init_http()))
 
 
 class Transport(HTTPTransport):
