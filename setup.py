@@ -2,7 +2,7 @@ from setuptools import setup
 
 setup(
     name='Mesh',
-    version='2.7',
+    version='2.8',
     description='Service mesh',
     packages=['mesh'],
     extras_require={
