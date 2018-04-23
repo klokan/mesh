@@ -217,8 +217,9 @@ class Session:
     def wait(self, correlation_id, timeout=None):
         if timeout is None:
             timeout = 10
+
         elapsed = 0
-        while elapsed < timeout:
+        while True:
             reply = self.replies.pop(correlation_id, None)
             if reply is not None:
                 return reply
@@ -227,6 +228,8 @@ class Session:
                 self.connection.drain_events(timeout=1)
             except socket.timeout:
                 elapsed += 1
+                if elapsed >= timeout:
+                    raise
             except self.connection.connection_errors:
                 # There is no point in retrying. Direct reply queues
                 # are tied to connections, so we couldn't receive
