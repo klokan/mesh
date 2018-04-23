@@ -40,6 +40,7 @@ class Mesh(MeshBase):
     def init_logger(self):
         if self.logger is None:
             raise Exception
+        return self.logger
 
     def init_sentry(self):
         if self.sentry is None and not self.app.debug:

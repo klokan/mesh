@@ -12,7 +12,7 @@ class AMQP:
     def __init__(self, mesh):
         config = mesh.config['amqp']
         self.mesh = mesh
-        self.logger = mesh.logger
+        self.logger = mesh.init_logger()
 
         self.app_id = config.get('app_id')
         self.base_url = 'amqp://{}/'.format(self.app_id or '')

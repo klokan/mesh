@@ -11,7 +11,7 @@ class CRON:
 
     def __init__(self, mesh):
         self.scheduler = Scheduler(mesh)
-        self.logger = mesh.logger
+        self.logger = mesh.init_logger()
         self.running = False
 
     def task(self, when):

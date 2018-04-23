@@ -17,7 +17,7 @@ class HTTP:
     def __init__(self, mesh):
         config = mesh.config.get('http', {})
         self.mesh = mesh
-        self.logger = mesh.logger
+        self.logger = mesh.init_logger()
 
         self.proxies = {}
         self.servers = {}
