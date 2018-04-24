@@ -9,7 +9,7 @@ from mesh import MeshBase
 class Mesh(MeshBase):
 
     def __init__(self, app):
-        super().__init__()
+        super().__init__(config=None)
         app.extensions['mesh'] = self
         self.app = app
         self.logger = app.logger
