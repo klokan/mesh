@@ -33,6 +33,7 @@ class Mesh(MeshBase):
 
             session_options = DB.session_options(self.config)
             self.db = SQLAlchemy(self.app, session_options=session_options)
+            DB.register_amqp_events(self.db.session, self.init_amqp())
 
         return self.db
 

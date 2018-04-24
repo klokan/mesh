@@ -129,7 +129,8 @@ class Session:
         self.connection = connection
         self.producer = None
         self.consumer = None
-        self.messages = []
+        self.new = []
+        self.pending = []
         self.replies = {}
 
     def init_producer(self):
@@ -165,32 +166,39 @@ class Session:
         self.connection.close()
 
     def begin(self):
-        self.messages.clear()
+        self.new.clear()
+        self.pending.clear()
         self.replies.clear()
 
+    def add(self, **kwargs):
+        self.new.append(kwargs)
+
+    def flush(self):
+        for message in self.new:
+            prepared_message = self.prepare(**message)
+            self.pending.append(prepared_message)
+        self.new.clear()
+
     def commit(self):
-        for message in self.messages:
-            self.publish(**message)
-        self.messages.clear()
+        if self.new:
+            self.flush()
+        for prepared_message in self.pending:
+            self.publish(prepared_message)
+        self.pending.clear()
 
     def rollback(self):
-        self.messages.clear()
+        self.new.clear()
+        self.pending.clear()
 
-    def add(self, **kwargs):
-        self.messages.append(kwargs)
-
-    def publish(self, *, exchange=None, routing_key=None, reply_to=None,
+    def prepare(self, *, exchange=None, routing_key=None, reply_to=None,
                 correlation_id=None, json=None, persistent=False, **kwargs):
         message_id = uuid()
-        self.init_producer()
 
         if reply_to is not None:
             if isinstance(reply_to, Queue):
                 reply_to = reply_to.name
-            if reply_to == self.reply_queue.name:
-                self.init_consumer()
-                if correlation_id is None:
-                    correlation_id = message_id
+            if reply_to == self.reply_queue.name and correlation_id is None:
+                correlation_id = message_id
 
         kwargs['exchange'] = exchange if exchange is not None else ''
         kwargs['routing_key'] = routing_key if routing_key is not None else ''
@@ -208,13 +216,23 @@ class Session:
         else:
             kwargs.setdefault('body', '')
 
+        return kwargs
+
+    def publish(self, prepared_message=None, **kwargs):
+        if prepared_message is None:
+            prepared_message = self.prepare(**kwargs)
+
+        self.init_producer()
+        if prepared_message['reply_to'] == self.reply_queue.name:
+            self.init_consumer()
+
         try:
-            self.producer.publish(**kwargs)
+            self.producer.publish(**prepared_message)
         except self.connection.connection_errors:
             self.revive()
-            self.producer.publish(**kwargs)
+            self.producer.publish(**prepared_message)
 
-        return correlation_id
+        return prepared_message['correlation_id']
 
     def wait(self, correlation_id, timeout=None):
         if timeout is None:

@@ -1,7 +1,7 @@
 import sqlalchemy
 import sqlalchemy.orm
 
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, event
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import scoped_session, sessionmaker
 
@@ -27,9 +27,25 @@ class DB:
             'expire_on_commit': config.bool('DB_EXPIRE_ON_COMMIT', True),
         }
 
+    @staticmethod
+    def register_amqp_events(session, amqp):
+        if amqp is not None:
+            @event.listens_for(session, 'after_flush')
+            def after_flush(session, context):
+                amqp.session.flush()
+
+            @event.listens_for(session, 'after_commit')
+            def after_commit(session):
+                amqp.session.commit()
+
+            @event.listens_for(session, 'after_rollback')
+            def after_rollback(session):
+                amqp.session.rollback()
+
     def __init__(self, mesh):
         self.engine = self.create_engine(self.engine_options(mesh.config))
         self.session = self.create_session(self.session_options(mesh.config))
+        self.register_amqp_events(self.session, mesh.init_amqp())
         self.Model = self.create_declarative_base()
         self.include_sqlalchemy()
 
