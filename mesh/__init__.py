@@ -1,14 +1,36 @@
-import json
 import logging
 
 from contextlib import contextmanager
+from os import environ
 from types import SimpleNamespace
+
+
+class Config:
+
+    def __init__(self, data):
+        self.data = data
+
+    def __contains__(self, key):
+        return key in self.data
+
+    def __getitem__(self, key):
+        return self.data[key]
+
+    def get(self, key, default=None):
+        return self.data.get(key, default)
+
+    def bool(self, key, default):
+        text = self.get(key)
+        if text is not None:
+            return bool(int(text))
+        else:
+            return default
 
 
 class MeshBase:
 
-    def __init__(self):
-        self.config = {}
+    def __init__(self, config):
+        self.config = Config(config if config is not None else environ)
         self.amqp = None
         self.cron = None
         self.db = None
@@ -17,17 +39,8 @@ class MeshBase:
         self.logger = None
         self.sentry = None
 
-    def configure(self, path_or_config=None, **kwargs):
-        if path_or_config is not None:
-            if isinstance(path_or_config, str):
-                with open(path_or_config, 'r') as fp:
-                    self.config.update(json.load(fp))
-            else:
-                self.config.update(path_or_config)
-        self.config.update(kwargs)
-
     def init_amqp(self):
-        if self.amqp is None and 'amqp' in self.config:
+        if self.amqp is None and 'AMQP_DSN' in self.config:
             from mesh.amqp import AMQP
             self.amqp = AMQP(self)
         return self.amqp
@@ -45,13 +58,13 @@ class MeshBase:
         return self.http
 
     def init_influx(self):
-        if self.influx is None and 'influx' in self.config:
+        if self.influx is None and 'INFLUX_DSN' in self.config:
             from mesh.influx import Influx
             self.influx = Influx(self)
         return self.influx
 
     def init_sentry(self):
-        if self.sentry is None and 'sentry' in self.config:
+        if self.sentry is None and 'SENTRY_DSN' in self.config:
             from mesh.sentry import make_client
             self.sentry = make_client(self)
         return self.sentry
@@ -61,13 +74,13 @@ class Mesh(MeshBase):
 
     logging_format = '[%(asctime)s] %(levelname)s in %(module)s: %(message)s'
 
-    def __init__(self):
-        super().__init__()
+    def __init__(self, config=None):
+        super().__init__(config)
         self.context = None
         self.teardown_callbacks = []
 
     def init_db(self):
-        if self.db is None and 'db' in self.config:
+        if self.db is None and 'DB_DSN' in self.config:
             from mesh.db import DB
             self.db = DB(self)
         return self.db

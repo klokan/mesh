@@ -1,7 +1,6 @@
 import sqlalchemy
 import sqlalchemy.orm
 
-from copy import deepcopy
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import scoped_session, sessionmaker
@@ -14,22 +13,32 @@ except ImportError:
 
 class DB:
 
+    @staticmethod
+    def engine_options(config):
+        return {
+            'dsn': config['DB_DSN'],
+            'echo': config.bool('DB_ECHO', False),
+        }
+
+    @staticmethod
+    def session_options(config):
+        return {
+            'autoflush': config.bool('DB_AUTOFLUSH', False),
+            'expire_on_commit': config.bool('DB_EXPIRE_ON_COMMIT', True),
+        }
+
     def __init__(self, mesh):
-        config = deepcopy(mesh.config['db'])
-        self.mesh = mesh
-        self.engine = self.create_engine(config['engine'])
-        self.session = self.create_scoped_session(config.get('session', {}))
+        self.engine = self.create_engine(self.engine_options(mesh.config))
+        self.session = self.create_session(self.session_options(mesh.config))
         self.Model = self.create_declarative_base()
         self.include_sqlalchemy()
 
     def create_engine(self, options):
-        url = options.pop('url')
-        return create_engine(url, **options)
+        return create_engine(options['dsn'], echo=options['echo'])
 
-    def create_scoped_session(self, options):
-        options.setdefault('autoflush', False)
-        session_factory = sessionmaker(bind=self.engine, **options)
-        return scoped_session(session_factory, scopefunc=get_ident)
+    def create_session(self, options):
+        factory = sessionmaker(bind=self.engine, **options)
+        return scoped_session(factory, scopefunc=get_ident)
 
     def create_declarative_base(self):
         model = declarative_base(cls=Model, name='Model')

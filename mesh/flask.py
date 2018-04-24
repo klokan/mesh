@@ -8,16 +8,11 @@ from mesh import MeshBase
 
 class Mesh(MeshBase):
 
-    def __init__(self, app=None):
-        super().__init__()
-        self.app = app
-        if app is not None:
-            self.init_app(app)
-            self.logger = app.logger
-
-    def init_app(self, app):
+    def __init__(self, app):
+        super().__init__(config=None)
         app.extensions['mesh'] = self
-        self.configure(app.config.get('MESH_CONFIG'))
+        self.app = app
+        self.logger = app.logger
 
     def init_cron(self):
         if self.cron is None:
@@ -26,20 +21,22 @@ class Mesh(MeshBase):
         return cron
 
     def init_db(self):
-        if self.db is None and 'db' in self.config:
+        if self.db is None and 'DB_DSN' in self.config:
             from flask_sqlalchemy import SQLAlchemy
-            config = self.config['db']
-            engine = config['engine']
-            session = config.get('session')
-            self.app.config['SQLALCHEMY_DATABASE_URI'] = engine['url']
-            self.app.config['SQLALCHEMY_ECHO'] = engine.get('echo', False)
-            self.app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-            self.db = SQLAlchemy(self.app, session_options=session)
+            from mesh.db import DB
+
+            engine_options = DB.engine_options(self.config)
+            self.app.config.update(
+                SQLALCHEMY_DATABASE_URI=engine_options['dsn'],
+                SQLALCHEMY_ECHO=engine_options['echo'],
+                SQLALCHEMY_TRACK_MODIFICATIONS=False)
+
+            session_options = DB.session_options(self.config)
+            self.db = SQLAlchemy(self.app, session_options=session_options)
+
         return self.db
 
     def init_logger(self):
-        if self.logger is None:
-            raise Exception
         return self.logger
 
     def init_sentry(self):

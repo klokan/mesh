@@ -10,13 +10,12 @@ from threading import Lock
 class AMQP:
 
     def __init__(self, mesh):
-        config = mesh.config['amqp']
         self.mesh = mesh
         self.logger = mesh.init_logger()
 
-        self.app_id = config.get('app_id')
+        self.app_id = mesh.config.get('AMQP_APP_ID')
         self.base_url = 'amqp://{}/'.format(self.app_id or '')
-        self.connection = Connection(config['broker'])
+        self.connection = Connection(mesh.config['AMQP_DSN'])
 
         self.sessions = []
         self.mutex = Lock()

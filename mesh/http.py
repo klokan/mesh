@@ -1,3 +1,5 @@
+import json
+
 from functools import wraps
 from requests import Session
 from requests.adapters import HTTPAdapter
@@ -15,7 +17,6 @@ except ImportError:
 class HTTP:
 
     def __init__(self, mesh):
-        config = mesh.config.get('http', {})
         self.mesh = mesh
         self.logger = mesh.init_logger()
 
@@ -23,6 +24,15 @@ class HTTP:
         self.servers = {}
         self.clients = set()
         self.adapter = Adapter(self.servers)
+
+        path_or_config = mesh.config.get('HTTP_CONFIG')
+        if path_or_config is None:
+            config = {}
+        elif isinstance(path_or_config, str):
+            with open(path_or_config, 'r') as fp:
+                config = json.load(fp)
+        else:
+            config = path_or_config
 
         proxies = config.get('proxies')
         if proxies:
