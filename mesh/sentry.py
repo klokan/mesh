@@ -4,12 +4,11 @@ from raven.transport.http import HTTPTransport
 
 
 def make_client(mesh):
-    config = mesh.config['sentry']
     return Client(
-        dsn=config['dsn'],
-        name=config.get('name'),
-        release=config.get('release'),
-        environment=config.get('environment'),
+        dsn=mesh.config['SENTRY_DSN'],
+        name=mesh.config.get('SENTRY_NAME'),
+        release=mesh.config.get('SENTRY_RELEASE'),
+        environment=mesh.config.get('SENTRY_ENVIRONMENT'),
         transport=partial(Transport, mesh.init_http()))
 
 

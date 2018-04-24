@@ -3,11 +3,7 @@ from uuid import uuid4
 
 
 def test_amqp():
-    mesh = Mesh()
-    mesh.configure(amqp={
-        'broker': 'amqp://guest:guest@rabbitmq/'
-    })
-
+    mesh = Mesh({'AMQP_DSN': 'amqp://guest:guest@rabbitmq/'})
     amqp = mesh.init_amqp()
     consumer = amqp.init_consumer()
     exchange = amqp.make_exchange(name='testing.exchange', type='direct')

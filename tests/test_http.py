@@ -9,9 +9,7 @@ class TestSession:
 
     @contextmanager
     def http(self, config=None):
-        mesh = Mesh()
-        if config is not None:
-            mesh.configure(http=config)
+        mesh = Mesh({'HTTP_CONFIG': config})
         http = mesh.init_http()
         with mesh.make_context():
             yield http
