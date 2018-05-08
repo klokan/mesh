@@ -15,13 +15,14 @@ class AMQP:
 
         self.app_id = mesh.config.get('AMQP_APP_ID')
         self.base_url = 'amqp://{}/'.format(self.app_id or '')
-        self.connection = Connection(mesh.config['AMQP_DSN'])
+        self.connection_prototype = Connection(mesh.config['AMQP_DSN'])
 
         self.sessions = []
         self.mutex = Lock()
 
         self.task_callbacks = {}
-        self.consumer = None
+        self.connection = None
+        self.consumers = {}
         self.running = False
 
         mesh.teardown_context(self.release_session)
@@ -31,10 +32,10 @@ class AMQP:
         while self.sessions:
             session = self.sessions.pop()
             session.close()
-        if self.consumer is not None:
-            self.consumer.close()
-            if self.consumer.connection is not None:
-                self.consumer.connection.close()
+        for consumer in self.consumers.values():
+            consumer.close()
+        if self.connection is not None:
+            self.connection.close()
 
     @property
     def session(self):
@@ -45,7 +46,8 @@ class AMQP:
                 try:
                     session = self.sessions.pop()
                 except IndexError:
-                    session = Session(self.app_id, self.connection.clone())
+                    connection = self.connection_prototype.clone()
+                    session = Session(self.app_id, connection)
             session.begin()
             setattr(context, 'amqp_session', session)
         return session
@@ -59,59 +61,73 @@ class AMQP:
                 with self.mutex:
                     self.sessions.append(session)
 
-    def task(self, message_type):
+    def task(self, message_type, consumer_name='default'):
         def decorator(callback):
-            self.task_callbacks[message_type] = callback
+            self.task_callbacks[consumer_name, message_type] = callback
             return callback
         return decorator
 
-    def init_consumer(self):
-        if self.consumer is None:
-            connection = self.connection.clone(heartbeat=60)
+    def init_connection(self):
+        connection = self.connection
+        if connection is None:
+            connection = self.connection_prototype.clone(heartbeat=60)
             connection.ensure_connection(max_retries=3)
-            self.consumer = connection.Consumer(on_message=self.process_message)  # noqa
-        return self.consumer
+            self.connection = connection
+        return connection
+
+    def init_consumer(self, consumer_name='default'):
+        consumer = self.consumers.get(consumer_name)
+        if consumer is None:
+            connection = self.init_connection()
+            consumer = connection.Consumer(
+                on_message=self.process_message,
+                tag_prefix=f'{consumer_name}/',
+                auto_declare=False)
+            self.consumers[consumer_name] = consumer
+        return consumer
 
     def make_exchange(self, **kwargs):
-        return Exchange(channel=self.consumer.connection, **kwargs)
+        return Exchange(channel=self.init_connection(), **kwargs)
 
     def make_queue(self, **kwargs):
-        return Queue(channel=self.consumer.connection, **kwargs)
+        return Queue(channel=self.init_connection(), **kwargs)
 
     def run(self):
         self.running = True
         signal(SIGINT, self.stop)
         signal(SIGTERM, self.stop)
 
-        self.consumer.consume()
-        connection = self.consumer.connection
+        for consumer in self.consumers.values():
+            consumer.consume()
 
         while self.running:
             try:
-                connection.drain_events(timeout=5)
+                self.connection.drain_events(timeout=5)
             except socket.timeout:
-                connection.heartbeat_check()
-            except connection.connection_errors:
-                connection.close()
-                connection.ensure_connection(max_retries=3)
-                self.consumer.revive(connection)
-                self.consumer.consume()
+                self.connection.heartbeat_check()
+            except self.connection.connection_errors:
+                self.connection.close()
+                self.connection.ensure_connection(max_retries=3)
+                for consumer in self.consumers.values():
+                    consumer.revive(self.connection)
+                    consumer.consume()
 
     def stop(self, signo=None, frame=None):
         self.running = False
 
     def process_message(self, message):
+        consumer_name, __, __ = message.delivery_info['consumer_tag'].partition('/')  # noqa
         message_type = message.properties.get('type')
         context = self.mesh.make_context(
             method='CONSUME',
             base_url=self.base_url,
-            path=message_type,
+            path=f'/{consumer_name}/{message_type}',
             headers=message.properties,
             content_type=message.content_type,
             data=message.body)
         with context:
             try:
-                callback = self.task_callbacks[message_type]
+                callback = self.task_callbacks[consumer_name, message_type]
                 callback(message)
             except Exception:
                 self.logger.exception('Exception occured')

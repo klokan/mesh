@@ -5,7 +5,7 @@ from uuid import uuid4
 def test_amqp():
     mesh = Mesh({'AMQP_DSN': 'amqp://guest:guest@rabbitmq/'})
     amqp = mesh.init_amqp()
-    consumer = amqp.init_consumer()
+    consumer = amqp.init_consumer('my_consumer')
     exchange = amqp.make_exchange(name='testing.exchange', type='direct')
     exchange.declare()
     queue = amqp.make_queue(name='testing.queue')
@@ -24,7 +24,7 @@ def test_amqp():
             json=lambda: secret)
         amqp.session.commit()
 
-    @amqp.task('testing.type')
+    @amqp.task('testing.type', 'my_consumer')
     def task(message):
         nonlocal received
         print(message)
