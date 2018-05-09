@@ -47,7 +47,7 @@ class AMQP:
                     session = self.sessions.pop()
                 except IndexError:
                     connection = self.connection_prototype.clone()
-                    session = Session(self.app_id, connection)
+                    session = Session(self.mesh, self.app_id, connection)
             session.begin()
             setattr(context, 'amqp_session', session)
         return session
@@ -118,6 +118,7 @@ class AMQP:
     def process_message(self, message):
         consumer_name, __, __ = message.delivery_info['consumer_tag'].partition('/')  # noqa
         message_type = message.properties.get('type')
+
         context = self.mesh.make_context(
             method='CONSUME',
             base_url=self.base_url,
@@ -125,6 +126,8 @@ class AMQP:
             headers=message.properties,
             content_type=message.content_type,
             data=message.body)
+        context.amqp_message = message
+
         with context:
             try:
                 callback = self.task_callbacks[consumer_name, message_type]
@@ -140,7 +143,8 @@ class Session:
 
     reply_queue = Queue('amq.rabbitmq.reply-to')
 
-    def __init__(self, app_id, connection):
+    def __init__(self, mesh, app_id, connection):
+        self.mesh = mesh
         self.app_id = app_id
         self.connection = connection
         self.producer = None
@@ -277,6 +281,13 @@ class Session:
         kwargs.setdefault('reply_to', self.reply_queue)
         correlation_id = self.publish(**kwargs)
         return self.wait(correlation_id, timeout=timeout)
+
+    def respond(self, **kwargs):
+        context = self.mesh.current_context()
+        request = context.amqp_message.properties
+        kwargs.setdefault('routing_key', request['reply_to'])
+        kwargs.setdefault('correlation_id', request.get('correlation_id'))
+        return self.publish(**kwargs)
 
     def process_reply(self, message):
         correlation_id = message.properties['correlation_id']

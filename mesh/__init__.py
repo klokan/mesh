@@ -1,8 +1,6 @@
 import logging
 
-from contextlib import contextmanager
 from os import environ
-from types import SimpleNamespace
 
 
 class Config:
@@ -95,17 +93,27 @@ class Mesh(MeshBase):
         self.teardown_callbacks.append(callback)
         return callback
 
-    @contextmanager
     def make_context(self, **kwargs):
-        self.context = SimpleNamespace()
-        try:
-            yield
-        except Exception:
-            self.logger.exception('Exception occured')
-        finally:
-            for callback in self.teardown_callbacks:
-                callback()
-            self.context = None
+        return Context(self, kwargs)
 
     def current_context(self):
         return self.context
+
+
+class Context:
+
+    def __init__(self, mesh, attrs):
+        self.mesh = mesh
+        for key, value in attrs.items():
+            setattr(self, key, value)
+
+    def __enter__(self):
+        self.mesh.context = self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        if exc_type is not None:
+            self.mesh.logger.exception('Exception occured')
+        for callback in self.mesh.teardown_callbacks:
+            callback()
+        self.mesh.context = None
+        return True

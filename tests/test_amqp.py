@@ -13,25 +13,37 @@ def test_amqp():
     queue.bind_to(exchange=exchange, routing_key='testing.routing_key')
     consumer.add_queue(queue)
 
+    correlation_id = str(uuid4())
     secret = str(uuid4())
     received = False
 
     with mesh.make_context():
         amqp.session.add(
             exchange='testing.exchange',
+            type='testing.ping',
             routing_key='testing.routing_key',
-            type='testing.type',
+            reply_to='testing.queue',
+            correlation_id=correlation_id,
             json=lambda: secret)
         amqp.session.commit()
 
-    @amqp.task('testing.type', 'my_consumer')
-    def task(message):
-        nonlocal received
-        print(message)
+    @amqp.task('testing.ping', 'my_consumer')
+    def ping(message):
+        print('PING', message)
+        amqp.session.respond(
+            type='testing.pong',
+            json=message.payload)
         message.ack()
-        if message.payload == secret:
-            amqp.stop()
-            received = True
+
+    @amqp.task('testing.pong', 'my_consumer')
+    def pong(message):
+        nonlocal received
+        print('PONG', message)
+        assert message.properties['correlation_id'] == correlation_id
+        assert message.payload == secret
+        message.ack()
+        amqp.stop()
+        received = True
 
     amqp.run()
     assert received
