@@ -211,7 +211,7 @@ class Session:
         self.pending.clear()
 
     def prepare(self, *, exchange=None, routing_key=None, reply_to=None,
-                correlation_id=None, json=None, persistent=False, **kwargs):
+                correlation_id=None, json=None, persistent=True, **kwargs):
         message_id = uuid()
 
         if reply_to is not None:
