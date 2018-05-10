@@ -57,4 +57,4 @@ class Scheduler(BaseScheduler):
             try:
                 super()._run_job(job)
             except Exception:
-                self.logger.exception('Exception occured')
+                self.mesh.logger.exception('Exception occured')
