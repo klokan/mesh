@@ -1,3 +1,4 @@
+v3.2, 2018-06-14 -- Accept Pickle messages for AMQP, automatically acknowledge.
 v3.1, 2018-05-08 -- Add multiple AMQP consumers, respond method, persistent messages by default.
 v3.0, 2018-04-24 -- Flat configuration, integrate AMQP and DB sessions.
 v2.9, 2018-04-23 -- Automatically initialize HTTP for Sentry.
