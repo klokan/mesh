@@ -48,6 +48,7 @@ class DB:
         self.register_amqp_events(self.session, mesh.init_amqp())
         self.Model = self.create_declarative_base()
         self.include_sqlalchemy()
+        mesh.teardown_context(lambda: self.session.remove())
 
     def create_engine(self, options):
         return create_engine(options['dsn'], echo=options['echo'])
