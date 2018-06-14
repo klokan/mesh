@@ -215,7 +215,8 @@ class Session:
         self.pending.clear()
 
     def prepare(self, *, exchange=None, routing_key=None, reply_to=None,
-                correlation_id=None, json=None, persistent=True, **kwargs):
+                correlation_id=None, body=None, json=None, persistent=True,
+                **kwargs):
         message_id = uuid()
 
         if reply_to is not None:
@@ -233,12 +234,17 @@ class Session:
         kwargs['delivery_mode'] = 2 if persistent else 1
 
         if json is not None:
+            assert body is None
             if callable(json):
                 json = json()
             kwargs['serializer'] = 'json'
             kwargs['body'] = json
         else:
-            kwargs.setdefault('body', '')
+            if callable(body):
+                body = body()
+            if body is None:
+                body = ''
+            kwargs['body'] = body
 
         return kwargs
 
