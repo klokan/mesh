@@ -80,6 +80,7 @@ class AMQP:
         if consumer is None:
             connection = self.init_connection()
             consumer = connection.Consumer(
+                accept=('json', 'pickle'),
                 on_message=self.process_message,
                 tag_prefix=f'{consumer_name}/',
                 auto_declare=False)
@@ -161,6 +162,7 @@ class Session:
         if self.consumer is None:
             self.consumer = self.connection.Consumer(
                 queues=[self.reply_queue],
+                accept=('json', 'pickle'),
                 on_message=self.process_reply,
                 no_ack=True)
             self.consumer.consume()
