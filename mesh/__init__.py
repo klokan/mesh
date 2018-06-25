@@ -89,6 +89,13 @@ class Mesh(MeshBase):
             self.logger = logging.getLogger()
         return self.logger
 
+    def init_sentry(self):
+        if self.sentry is None:
+            sentry = super().init_sentry()
+            if sentry is not None:
+                sentry.install_logging_hook()
+        return self.sentry
+
     def teardown_context(self, callback):
         self.teardown_callbacks.append(callback)
         return callback
