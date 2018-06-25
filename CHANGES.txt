@@ -1,3 +1,4 @@
+v3.5, 2018-06-25 -- Install Sentry logging hook, remove DB integration with AMQP.
 v3.4, 2018-06-14 -- Remove DB session when context exits.
 v3.3, 2018-06-14 -- Allow AMQP message body to be callable.
 v3.2, 2018-06-14 -- Accept Pickle messages for AMQP, automatically acknowledge.
